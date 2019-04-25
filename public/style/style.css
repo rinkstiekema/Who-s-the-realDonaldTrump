@@ -1,0 +1,28 @@
+#options {
+  display: grid;
+  grid-template-columns: 50% 50%;
+  grid-template-rows: 50% 50%;
+  height: 70vh;
+}
+
+#options > div {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+button {
+  height: 80%;
+  width: 80%;
+}
+
+h1,
+h2 {
+  text-align: center;
+  font-family: sans-serif;
+}
+
+body {
+  text-align: center;
+}
