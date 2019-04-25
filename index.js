@@ -121,10 +121,10 @@ function newNamespace(nsp, areacode) {
       var originalTweets = clientTweets
       //take 4 of those
       var personalTweets = helpers.getRandom(clientTweets, 4)
-      //send the name of those 4 to client and remove from all tweets removed !
+      //send the name of those 4 to client and remove from all tweets
       client.emit('tweets', personalTweets.map(tweet => tweet.name))
-      clientTweets = clientTweets.filter(value =>
-        personalTweets.includes(value)
+      clientTweets = clientTweets.filter(
+        value => !personalTweets.includes(value)
       )
       //receive answer
       client.on('answer', answer => {
