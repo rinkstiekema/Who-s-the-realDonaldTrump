@@ -30,9 +30,11 @@ function fillOptions(options) {
     var container = document.createElement('div')
     var node = document.createElement('Button')
     node.onclick = function() {
+      this.onclick = ""
       lastClicked = index
       socket.emit('answer', options[index])
     }
+    node.id = index+"-button"
     var textnode = document.createTextNode(options[index])
     node.appendChild(textnode)
     container.appendChild(node)
@@ -41,7 +43,7 @@ function fillOptions(options) {
 }
 
 function colorAnswer(correct){
-  document.getElementById("options").childNodes[lastClicked].childNodes[0].className = correct ? "correct" : "wrong";
+  document.getElementById(lastClicked+"-button").className = correct ? "correct" : "wrong";
 }
 
 //update points on screen
