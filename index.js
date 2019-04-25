@@ -37,6 +37,10 @@ app.get('/:account', (req, res) => {
   res.render('index', {account: account})
 })
 
+app.get('/', (req, res) => {
+  res.redirect('/realDonaldTrump')
+})
+
 //twitter keys
 var T = new Twit({
   consumer_key: 'YFPrRu0ynMMj360eNC2jd91mS',
