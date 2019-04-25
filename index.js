@@ -90,11 +90,16 @@ function getTrendsForCountry(areaCode) {
 const streamNsp = io.of('/stream')
 //on live
 streamNsp.on('connection', function(socket) {
+  var stream
   //when receiving a request a request for a livefeed
   socket.on('request', function(query) {
     console.log(query)
+    //stop existing stream
+    if (stream) {
+      stream.stop()
+    }
     //create new stream
-    let stream = T.stream('statuses/filter', {
+    stream = T.stream('statuses/filter', {
       track: query
     })
     //send results to client

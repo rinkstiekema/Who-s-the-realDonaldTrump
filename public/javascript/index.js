@@ -62,6 +62,7 @@ function fillOptions(options) {
 //remove old DOM and add end display
 function overview(tweets) {
   function requestStream(query) {
+    clearStream()
     streamSocket.emit('request', query)
   }
   var twitStream = document.createElement('div')
@@ -103,4 +104,10 @@ function clearOptions() {
   while (options.firstChild) {
     options.removeChild(options.firstChild)
   }
+}
+
+//clear livestream
+function clearStream() {
+  var stream = document.getElementById('twitStream')
+  stream.innerHTML = ''
 }
