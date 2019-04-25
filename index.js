@@ -93,13 +93,15 @@ io.on('connection', client => {
       console.log('personalTweets = ', personalTweets)
       //send new tweets to client
       client.emit('correct', personalTweets.map(tweet => tweet.name))
-      //code to assign points here
+      //on wrong answer
     } else {
       client.emit('wrong', answer)
-      client.emit('points', (points -= 1))
+      if (points > 0) {
+        client.emit('points', (points -= 1))
+      }
     }
   })
-
+  //on disconnect
   client.on('disconnect', () => console.log('closed connection'))
 })
 
@@ -125,6 +127,5 @@ var helpers = {
   getMax: array => {
     var valuesArray = array.map(option => option.tweet_volume)
     return Math.max(...valuesArray)
-  },
-  filter: (array, filter) => array.filter(tweet => tweet.name !== filter)
+  }
 }
