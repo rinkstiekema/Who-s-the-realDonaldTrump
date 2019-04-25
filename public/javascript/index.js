@@ -1,5 +1,6 @@
 //connecting to the namespace for the right region
 var socket = io('/' + region)
+var streamSocket = io('/stream')
 
 //receiving the options
 socket.on('tweets', function(tweets) {
@@ -11,9 +12,8 @@ socket.on('tweets', function(tweets) {
 socket.on('winner', function(allTweets) {
   clearOptions()
   overview(allTweets)
-  var streamSocket = io('/stream')
   //filling the feed with live tweets
-  streamSocket.on('tweets', function(tweet) {
+  streamSocket.on('livestream', function(tweet) {
     console.log(tweet.user)
     console.log(tweet.text)
     var container = document.getElementById('twitStream')
@@ -61,6 +61,9 @@ function fillOptions(options) {
 
 //remove old DOM and add end display
 function overview(tweets) {
+  function requestStream(query) {
+    streamSocket.emit('request', query)
+  }
   var twitStream = document.createElement('div')
   var trendOverview = document.createElement('div')
   document.getElementById('options').id = 'overview'
@@ -79,6 +82,10 @@ function overview(tweets) {
     count.appendChild(textnodeCount)
     container.appendChild(name)
     container.appendChild(count)
+    //make onclick to start stream for particular tweet
+    container.onclick = function() {
+      requestStream(tweet.name)
+    }
     trendOverview.appendChild(container)
   })
   document.getElementById('overview').appendChild(twitStream)

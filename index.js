@@ -90,15 +90,20 @@ function getTrendsForCountry(areaCode) {
 const streamNsp = io.of('/stream')
 //on live
 streamNsp.on('connection', function(socket) {
+  //when receiving a request a request for a livefeed
+  socket.on('request', function(query) {
+    console.log(query)
+    //create new stream
+    let stream = T.stream('statuses/filter', {
+      track: query
+    })
+    //send results to client
+    stream.on('tweet', function(stream) {
+      socket.emit('livestream', stream)
+    })
+  })
+  socket.on('disconnect', () => console.log('disconnect'))
   console.log('connected to stream')
-  //make stream
-  let stream = T.stream('statuses/filter', {
-    track: 'test'
-  })
-  //send results to client
-  stream.on('tweet', function(stream) {
-    socket.emit('tweets', stream)
-  })
 })
 
 function newNamespace(nsp, areacode) {
