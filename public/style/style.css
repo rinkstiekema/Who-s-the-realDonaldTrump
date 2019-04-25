@@ -5,8 +5,16 @@
   height: 70vh;
 }
 
+button {
+  text-align: left;
+  padding: 2em;
+  border: none;
+  background-color: white;
+}
+
 body {
   font-family: sans-serif;
+  background-color: lightgrey;
 }
 
 #options > div {
@@ -51,7 +59,7 @@ body {
 }
 
 .correct {
-  background-color: lightgreen
+  background-color: lightgreen;
 }
 
 .wrong {
