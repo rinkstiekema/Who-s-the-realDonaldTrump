@@ -27,13 +27,15 @@ socket.on('points', function(points) {
 
 function fillOptions(options) {
   for (let index = 0; index < options.length; index++) {
+    var container = document.createElement('div')
     var node = document.createElement('Button')
     node.onclick = function() {
       socket.emit('answer', options[index])
     }
     var textnode = document.createTextNode(options[index])
     node.appendChild(textnode)
-    document.getElementById('options').appendChild(node)
+    container.appendChild(node)
+    document.getElementById('options').appendChild(container)
   }
 }
 
