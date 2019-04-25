@@ -13,19 +13,29 @@ const path = require('path')
 
 const port = process.env.PORT || 7070
 
+let twitterAccounts = {
+  realDonaldTrump: ["realDonaldTumpf", "realdonalbtrump", "realDonaldTrody", "Plaid_DTrump", "realSportsTrump", "Writeintrump", "DonaldTrumph_", "DJarJarTrump"],
+  elonmusk: ["EvilonMusk", "BoredElonMusk", "NotElonMsuk"]
+}
+
+let scores = {
+  realDonaldTrump: {correct: 0, wrong: 0},
+  elonmusk: {correct: 0, wrong: 0}
+};
+
+let correct = 0;
+let wrong = 0;
+
 app.use(express.static(path.join(__dirname, 'public')))
 
 app.set('view engine', 'ejs')
 app.set('views', path.join(__dirname, 'public/views'))
 
 //routes
-app.get('/', (req, res) => {
-  res.render('index')
+app.get('/:account', (req, res) => {
+  let account = req.params.account;
+  res.render('index', {account: account})
 })
-
-let correct = 0;
-let wrong = 0;
-let fakeTrumpAccounts = ["realDonaldTumpf", "realdonalbtrump", "realDonaldTrody", "Plaid_DTrump", "realSportsTrump", "Writeintrump", "DonaldTrumph_", "DJarJarTrump"]
 
 //twitter keys
 var T = new Twit({
@@ -36,14 +46,14 @@ var T = new Twit({
 })
 
 //retrieve tweets
-async function getOriginalTweets() {
-  return await T.get('statuses/user_timeline', {count: 100, include_rts: false, tweet_mode: "extended", screen_name: "realDonaldTrump"}).then(tweets => tweets.data.map(tweet => tweet.full_text))
+async function getOriginalTweets(account) {
+  return await T.get('statuses/user_timeline', {count: 100, include_rts: false, tweet_mode: "extended", screen_name: account}).then(tweets => tweets.data.map(tweet => tweet.full_text))
 }
 
-async function getFakeTweets() {
+async function getFakeTweets(account) {
   promises = []
-  randomTrumpAccounts = [pickRandom(fakeTrumpAccounts), pickRandom(fakeTrumpAccounts), pickRandom(fakeTrumpAccounts)]
-  randomTrumpAccounts.forEach(account => {
+  randomAccounts = [pickRandom(twitterAccounts[account]), pickRandom(twitterAccounts[account]), pickRandom(twitterAccounts[account])]
+  randomAccounts.forEach(account => {
     promises.push(T.get('statuses/user_timeline', {count: 100, include_rts: false, tweet_mode: "extended", screen_name: account}).then(tweets => tweets.data.map(tweet => tweet.full_text)))
   })
   return await Promise.all(promises)
@@ -74,28 +84,31 @@ function pickTweets(tweets) {
   return {original: result[0], tweets: shuffleArray(result)};
 }
 
-async function getTweets() {
-  originalTweets = await getOriginalTweets();
-  fakeTweets = await getFakeTweets();
+async function getTweets(account) {
+  originalTweets = await getOriginalTweets(account);
+  fakeTweets = await getFakeTweets(account);
   return pickTweets([originalTweets, fakeTweets]);
 }
 
-io.on('connection', async (client) => {
-  client.emit('points', {correct: correct, wrong: wrong})
-  let tweets = await getTweets();
-  client.emit('tweets', tweets.tweets);
-  client.on('answer', async (answer) => {
-    if(tweets.original == answer){
-      correct += 1
-      client.emit('correct', {correct: correct, wrong: wrong})
-    } else {
-      wrong += 1
-      client.emit('wrong', {correct: correct, wrong: wrong})
-    }
-    tweets = await getTweets();
+Object.keys(twitterAccounts).forEach(account => {
+  let nsp = io.of('/'+account)
+  nsp.on('connection', async (client) => {
+    client.emit('points', scores[account])
+    let tweets = await getTweets(account);
     client.emit('tweets', tweets.tweets);
+    client.on('answer', async (answer) => {
+      if(tweets.original == answer){
+        scores[account].correct += 1;
+        client.emit('correct', scores[account])
+      } else {
+        scores[account].wrong += 1
+        client.emit('wrong', scores[account])
+      }
+      tweets = await getTweets(account);
+      client.emit('tweets', tweets.tweets);
+    })
   })
-})
+});
 
 http.listen(port, () => {
   console.log(`App running on port ${port}!`)
