@@ -49,3 +49,11 @@ h2 {
 body {
   text-align: center;
 }
+
+.correct {
+  background-color: lightgreen
+}
+
+.wrong {
+  background-color: lightcoral;
+}

@@ -20,54 +20,12 @@ app.set('views', path.join(__dirname, 'public/views'))
 
 //routes
 app.get('/', (req, res) => {
-  res.redirect('/menu')
+  res.render('index')
 })
 
-app.get('/menu', (req, res) => {
-  res.render('menu')
-})
-
-app.get('/game/:country', (req, res) => {
-  console.log(req.params.country)
-  var request = req.params.country
-  var area = areas.filter(area => area.route == request)[0]
-  console.log(area)
-  //check if area is in the database and render the game if it is
-  if (area) {
-    res.render('index', { areacode: area.areacode, areaname: area.name })
-  } else {
-    res.render('notfound', { request: request })
-  }
-})
-
-//areas
-var areas = [
-  {
-    route: 'nl',
-    name: 'the Netherlands',
-    areacode: '23424909'
-  },
-  {
-    route: 'germany',
-    name: 'Germany',
-    areacode: '23424829'
-  },
-  {
-    route: 'world',
-    name: 'World',
-    areacode: '1'
-  },
-  {
-    route: 'us',
-    name: 'the United States',
-    areacode: '23424977'
-  }
-]
-
-//create namespaces for different regions
-areas.forEach(area => {
-  newNamespace(io.of('/' + area.areacode), area.areacode)
-})
+let correct = 0;
+let wrong = 0;
+let fakeTrumpAccounts = ["realDonaldTumpf", "realdonalbtrump", "realDonaldTrody", "Plaid_DTrump", "realSportsTrump", "Writeintrump", "DonaldTrumph_", "DJarJarTrump"]
 
 //twitter keys
 var T = new Twit({
@@ -78,128 +36,67 @@ var T = new Twit({
 })
 
 //retrieve tweets
-function getTrendsForCountry(areaCode) {
-  return T.get('trends/place', { id: areaCode }).then(result => {
-    return (tweetsWithVolume = result.data[0].trends.filter(
-      tweet => tweet.tweet_volume
-    ))
-  })
+async function getOriginalTweets() {
+  return await T.get('statuses/user_timeline', {count: 100, include_rts: false, tweet_mode: "extended", screen_name: "realDonaldTrump"}).then(tweets => tweets.data.map(tweet => tweet.full_text))
 }
 
-//create namespace for live tweets
-const streamNsp = io.of('/stream')
-//on live
-streamNsp.on('connection', function(socket) {
-  var stream
-  //when receiving a request a request for a livefeed
-  socket.on('request', function(query) {
-    console.log(query)
-    //stop existing stream
-    if (stream) {
-      stream.stop()
-    }
-    //create new stream
-    stream = T.stream('statuses/filter', {
-      track: query
-    })
-    //send results to client
-    stream.on('tweet', function(stream) {
-      socket.emit('livestream', stream)
-    })
+async function getFakeTweets() {
+  promises = []
+  randomTrumpAccounts = [pickRandom(fakeTrumpAccounts), pickRandom(fakeTrumpAccounts), pickRandom(fakeTrumpAccounts)]
+  randomTrumpAccounts.forEach(account => {
+    promises.push(T.get('statuses/user_timeline', {count: 100, include_rts: false, tweet_mode: "extended", screen_name: account}).then(tweets => tweets.data.map(tweet => tweet.full_text)))
   })
-  socket.on('disconnect', () => console.log('disconnect'))
-  console.log('connected to stream')
+  return await Promise.all(promises)
+}
+
+function pickRandom(ar){
+  return ar[Math.floor(Math.random() * ar.length)]
+}
+
+function shuffleArray(array) {
+  for (var i = array.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var temp = array[i];
+      array[i] = array[j];
+      array[j] = temp;
+  }
+  return array
+}
+
+function pickTweets(tweets) {
+  originalTweets = tweets[0]
+  fakeTweets = tweets[1]
+  result = []
+  result.push(pickRandom(originalTweets))
+  fakeTweets.forEach(tweets => {
+    result.push(pickRandom(tweets));
+  })
+  return {original: result[0], tweets: shuffleArray(result)};
+}
+
+async function getTweets() {
+  originalTweets = await getOriginalTweets();
+  fakeTweets = await getFakeTweets();
+  return pickTweets([originalTweets, fakeTweets]);
+}
+
+io.on('connection', async (client) => {
+  client.emit('points', {correct: correct, wrong: wrong})
+  let tweets = await getTweets();
+  client.emit('tweets', tweets.tweets);
+  client.on('answer', async (answer) => {
+    if(tweets.original == answer){
+      correct += 1
+      client.emit('correct', {correct: correct, wrong: wrong})
+    } else {
+      wrong += 1
+      client.emit('wrong', {correct: correct, wrong: wrong})
+    }
+    tweets = await getTweets();
+    client.emit('tweets', tweets.tweets);
+  })
 })
 
-function newNamespace(nsp, areacode) {
-  //on connection
-  nsp.on('connection', client => {
-    var points = 0
-    console.log('new connection')
-    //get all trends for this client
-    getTrendsForCountry(areacode).then(clientTweets => {
-      var originalTweets = clientTweets
-      //take 4 of those
-      var personalTweets = helpers.getRandom(clientTweets, 4)
-      //send the name of those 4 to client and remove from all tweets
-      client.emit('tweets', personalTweets.map(tweet => tweet.name))
-      clientTweets = clientTweets.filter(
-        value => !personalTweets.includes(value)
-      )
-      //receive answer
-      client.on('answer', answer => {
-        //check if answer is right or wrong
-        var pick = personalTweets.find(tweet => tweet.name == answer)
-        var highest = helpers.getMax(personalTweets)
-        //if right
-        if (pick.tweet_volume >= highest) {
-          client.emit('points', (points += 3))
-          //take pick from all tweets and from the 4 options
-          clientTweets = clientTweets.filter(value => value != pick)
-          personalTweets = personalTweets.filter(value => value != pick)
-          //take a new tweet
-          var newTweet = helpers.getRandom(clientTweets, 1)[0]
-          //check if game is over
-          if (newTweet == 'none') {
-            //check if there are any options left
-            if (personalTweets.length >= 1) {
-              personalTweets = personalTweets.filter(value => value != pick)
-              client.emit('correct', personalTweets.map(tweet => tweet.name))
-              return
-              //if no options left
-            } else {
-              //send all options to client, sorted by volume
-              client.emit('winner', helpers.sortByVolume(originalTweets))
-              return
-            }
-          }
-          //remove new tweet from the total tweets
-          clientTweets = clientTweets.filter(
-            value => value.name != newTweet.name
-          )
-          //add it to options
-          personalTweets.push(newTweet)
-          //send new tweets to client
-          client.emit('correct', personalTweets.map(tweet => tweet.name))
-          //on wrong answer
-        } else {
-          client.emit('wrong', answer)
-          if (points > 0) {
-            client.emit('points', (points -= 1))
-          }
-        }
-      })
-    })
-    //on disconnect
-    client.on('disconnect', () => console.log('closed connection'))
-  })
-}
 http.listen(port, () => {
   console.log(`App running on port ${port}!`)
 })
-
-var helpers = {
-  sortByVolume: array =>
-    array.sort(function(a, b) {
-      return b.tweet_volume - a.tweet_volume
-    }),
-
-  //https://stackoverflow.com/questions/19269545/how-to-get-n-no-elements-randomly-from-an-array
-  getRandom: function getRandom(arr, n) {
-    var result = new Array(n),
-      len = arr.length,
-      taken = new Array(len)
-    if (n > len) return ['none']
-    while (n--) {
-      var x = Math.floor(Math.random() * len)
-      result[n] = arr[x in taken ? taken[x] : x]
-      taken[x] = --len in taken ? taken[len] : len
-    }
-    return result
-  },
-  //get maximum tweet volume
-  getMax: array => {
-    var valuesArray = array.map(option => option.tweet_volume)
-    return Math.max(...valuesArray)
-  }
-}

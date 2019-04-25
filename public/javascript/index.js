@@ -1,55 +1,36 @@
 //connecting to the namespace for the right region
-var socket = io('/' + region)
-var streamSocket = io('/stream')
+var socket = io()
+var lastClicked
 
 //receiving the options
 socket.on('tweets', function(tweets) {
-  console.log(tweets)
   fillOptions(tweets)
 })
 
-//when the game is over
-socket.on('winner', function(allTweets) {
-  clearOptions()
-  overview(allTweets)
-  //filling the feed with live tweets
-  streamSocket.on('livestream', function(tweet) {
-    console.log(tweet.user)
-    console.log(tweet.text)
-    var container = document.getElementById('twitStream')
-    var tweetObject = document.createElement('div')
-    var text = document.createElement('p')
-    var textnode = document.createTextNode(tweet.text)
-    text.appendChild(textnode)
-    tweetObject.appendChild(text)
-    container.appendChild(tweetObject)
-  })
+socket.on('points', function(points){
+  updatePoints(points);
 })
 
 //on right answer
-socket.on('correct', function(newTweets) {
-  console.log(newTweets)
-  clearOptions()
-  fillOptions(newTweets)
+socket.on('correct', function(points) {
+  updatePoints(points);
+  colorAnswer(true)
 })
 
 //on wrong answer
-socket.on('wrong', function(msg) {
-  console.log(msg)
-})
-
-//when receiving points
-socket.on('points', function(points) {
-  updatePoints(points)
-  console.log('points ', points)
+socket.on('wrong', function(points) {
+  updatePoints(points);
+  colorAnswer(false)
 })
 
 //make buttons for each of the options
 function fillOptions(options) {
+  clearOptions();
   for (let index = 0; index < options.length; index++) {
     var container = document.createElement('div')
     var node = document.createElement('Button')
     node.onclick = function() {
+      lastClicked = index
       socket.emit('answer', options[index])
     }
     var textnode = document.createTextNode(options[index])
@@ -59,43 +40,13 @@ function fillOptions(options) {
   }
 }
 
-//remove old DOM and add end display
-function overview(tweets) {
-  function requestStream(query) {
-    clearStream()
-    streamSocket.emit('request', query)
-  }
-  var twitStream = document.createElement('div')
-  var trendOverview = document.createElement('div')
-  document.getElementById('options').id = 'overview'
-  document.getElementById('overview').appendChild(trendOverview)
-  document.getElementById('overview').appendChild(twitStream)
-  trendOverview.id = 'trendOverview'
-  twitStream.id = 'twitStream'
-  tweets.forEach(tweet => {
-    console.log(tweet)
-    var container = document.createElement('div')
-    var name = document.createElement('p')
-    var count = document.createElement('p')
-    var textnodeName = document.createTextNode(tweet.name)
-    var textnodeCount = document.createTextNode(tweet.tweet_volume)
-    name.appendChild(textnodeName)
-    count.appendChild(textnodeCount)
-    container.appendChild(name)
-    container.appendChild(count)
-    //make onclick to start stream for particular tweet
-    container.onclick = function() {
-      requestStream(tweet.name)
-    }
-    trendOverview.appendChild(container)
-  })
-  document.getElementById('overview').appendChild(twitStream)
-  document.getElementById('overview').appendChild(trendOverview)
+function colorAnswer(correct){
+  document.getElementById("options").childNodes[lastClicked].childNodes[0].className = correct ? "correct" : "wrong";
 }
 
 //update points on screen
 function updatePoints(points) {
-  document.getElementById('points').innerText = points
+  document.getElementById('points').innerText = "Total Correct: "+points.correct+" Total Wrong: "+points.wrong
 }
 
 //clear the options from the DOM
