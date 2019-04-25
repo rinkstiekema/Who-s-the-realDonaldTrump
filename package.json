@@ -15,6 +15,8 @@
 		"express": "^4.16.4",
 		"nodemon": "^1.18.11",
 		"socket.io": "^2.2.0",
-		"twit": "^2.2.11"
+		"twit": "^2.2.11",
+		"twit-promise": "^2.1.0",
+		"twitter": "^1.7.1"
 	}
 }

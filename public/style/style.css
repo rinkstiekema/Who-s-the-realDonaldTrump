@@ -12,6 +12,21 @@
   align-items: center;
 }
 
+#overview {
+  display: grid;
+  grid-template-columns: 50% 50%;
+}
+
+#overview > div {
+  padding: 2em;
+}
+
+#overview > div > div {
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+}
+
 button {
   height: 80%;
   width: 80%;
