@@ -3,14 +3,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Guess the real @realDonaldTrump tweet</title>
+    <title>Who's the real @<%= account %>?</title>
     <link rel="stylesheet" type="text/css" href="./../../style/style.css">
 </head>
 <body>
-    <h1>Guess the real @realDonaldTrump tweet</h1>
+    <h1>Who's the real @<%= account %>?</h1>
     <h2 id='points'></h2>
     <div id="options">
     </div>
+    <script>
+        let account = "<%= account %>";
+    </script>
 </body>
 <script src="/socket.io/socket.io.js"></script>
 		<script type="text/javascript" src="./../../javascript/index.js"></script>

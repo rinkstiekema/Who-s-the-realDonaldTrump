@@ -1,5 +1,5 @@
 //connecting to the namespace for the right region
-var socket = io()
+var socket = io('/'+account)
 var lastClicked
 
 //receiving the options
