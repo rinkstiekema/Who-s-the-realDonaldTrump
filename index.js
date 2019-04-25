@@ -86,6 +86,21 @@ function getTrendsForCountry(areaCode) {
   })
 }
 
+//create namespace for live tweets
+const streamNsp = io.of('/stream')
+//on live
+streamNsp.on('connection', function(socket) {
+  console.log('connected to stream')
+  //make stream
+  let stream = T.stream('statuses/filter', {
+    track: 'test'
+  })
+  //send results to client
+  stream.on('tweet', function(stream) {
+    socket.emit('tweets', stream)
+  })
+})
+
 function newNamespace(nsp, areacode) {
   //on connection
   nsp.on('connection', client => {

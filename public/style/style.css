@@ -5,6 +5,10 @@
   height: 70vh;
 }
 
+body {
+  font-family: sans-serif;
+}
+
 #options > div {
   height: 100%;
   display: flex;

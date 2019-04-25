@@ -11,8 +11,19 @@ socket.on('tweets', function(tweets) {
 socket.on('winner', function(allTweets) {
   clearOptions()
   overview(allTweets)
-
-  console.log('game over')
+  var streamSocket = io('/stream')
+  //filling the feed with live tweets
+  streamSocket.on('tweets', function(tweet) {
+    console.log(tweet.user)
+    console.log(tweet.text)
+    var container = document.getElementById('twitStream')
+    var tweetObject = document.createElement('div')
+    var text = document.createElement('p')
+    var textnode = document.createTextNode(tweet.text)
+    text.appendChild(textnode)
+    tweetObject.appendChild(text)
+    container.appendChild(tweetObject)
+  })
 })
 
 //on right answer
@@ -55,6 +66,8 @@ function overview(tweets) {
   document.getElementById('options').id = 'overview'
   document.getElementById('overview').appendChild(trendOverview)
   document.getElementById('overview').appendChild(twitStream)
+  trendOverview.id = 'trendOverview'
+  twitStream.id = 'twitStream'
   tweets.forEach(tweet => {
     console.log(tweet)
     var container = document.createElement('div')
