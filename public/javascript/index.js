@@ -6,6 +6,7 @@ socket.on('tweets', function(tweets) {
 })
 
 socket.on('winner', function() {
+  clearOptions()
   console.log('game over')
 })
 

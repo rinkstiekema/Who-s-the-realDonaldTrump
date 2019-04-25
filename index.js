@@ -44,42 +44,47 @@ io.on('connection', client => {
   console.log('new connection')
   //get all trends for this client
   var clientTweets = tweets
-  console.log('Original clientTweets: ', clientTweets)
+  //   console.log('Original clientTweets: ', clientTweets)
   //take 4 of those
   var personalTweets = helpers.getRandom(clientTweets, 4)
   //send the name of those 4 to client and remove from all tweets
   client.emit('tweets', personalTweets.map(tweet => tweet.name))
   clientTweets = clientTweets.filter(value => !personalTweets.includes(value))
-  console.log('without personal clientTweets: ', clientTweets)
+  //   console.log('without personal clientTweets: ', clientTweets)
   //receive answer
   client.on('answer', answer => {
     //check if answer is right or wrong
     var pick = personalTweets.find(tweet => tweet.name == answer)
-    if (!pick) {
-      client.emit('winner')
-      return
-    }
-    console.log('pick + ', pick)
+    // if (!pick) {
+    //   client.emit('winner')
+    //   return
+    // }
+    // console.log('pick + ', pick)
     var highest = helpers.getMax(personalTweets)
     //if right
     if (pick.tweet_volume >= highest) {
-      points += 1
-      client.emit('points', points)
+      client.emit('points', (points += 3))
       //take pick from all tweets and from the 4 options
-      if (clientTweets != []) {
-        clientTweets = clientTweets.filter(value => value != pick)
-      }
-      console.log('clientTweets = ', clientTweets)
+      //if (clientTweets != []) {
+      clientTweets = clientTweets.filter(value => value != pick)
+      //}
+      //console.log('clientTweets = ', clientTweets)
       personalTweets = personalTweets.filter(value => value != pick)
-      console.log('personalTweets = ', personalTweets)
+      //console.log('personalTweets = ', personalTweets)
       //take a new tweet
       var newTweet = helpers.getRandom(clientTweets, 1)[0]
       //check if game is over
       if (newTweet == 'winner') {
-        client.emit('winner')
-        return
+        if (personalTweets.length >= 1) {
+          personalTweets = personalTweets.filter(value => value != pick)
+          client.emit('correct', personalTweets.map(tweet => tweet.name))
+          return
+        } else {
+          client.emit('winner')
+          return
+        }
       }
-      console.log('newTweet = ', newTweet)
+      //console.log('newTweet = ', newTweet)
       //remove new tweet from the total tweets
       clientTweets = clientTweets.filter(value => value.name != newTweet.name)
       console.log('clientTweets = ', personalTweets)
@@ -91,6 +96,7 @@ io.on('connection', client => {
       //code to assign points here
     } else {
       client.emit('wrong', answer)
+      client.emit('points', (points -= 1))
     }
   })
 
