@@ -19,6 +19,14 @@ app.set('view engine', 'ejs')
 app.set('views', path.join(__dirname, 'public/views'))
 
 app.get('/', (req, res) => {
+  res.redirect('/menu')
+})
+
+app.get('/menu', (req, res) => {
+  res.render('menu')
+})
+
+app.get('/game', (req, res) => {
   res.render('index')
 })
 
@@ -31,12 +39,15 @@ var T = new Twit({
 })
 
 var tweets
-
+var areaCode = '23424909'
+getTrendsForCountry(areaCode)
 //retrieve tweets
-T.get('trends/place', { id: '23424909' }, function(err, data, response) {
-  tweetsWithVolume = data[0].trends.filter(tweet => tweet.tweet_volume)
-  tweets = tweetsWithVolume
-})
+function getTrendsForCountry(areaCode) {
+  T.get('trends/place', { id: areaCode }, function(err, data, response) {
+    tweetsWithVolume = data[0].trends.filter(tweet => tweet.tweet_volume)
+    tweets = tweetsWithVolume
+  })
+}
 
 //on connection
 io.on('connection', client => {
@@ -44,53 +55,41 @@ io.on('connection', client => {
   console.log('new connection')
   //get all trends for this client
   var clientTweets = tweets
-  //   console.log('Original clientTweets: ', clientTweets)
   //take 4 of those
   var personalTweets = helpers.getRandom(clientTweets, 4)
   //send the name of those 4 to client and remove from all tweets
   client.emit('tweets', personalTweets.map(tweet => tweet.name))
   clientTweets = clientTweets.filter(value => !personalTweets.includes(value))
-  //   console.log('without personal clientTweets: ', clientTweets)
   //receive answer
   client.on('answer', answer => {
     //check if answer is right or wrong
     var pick = personalTweets.find(tweet => tweet.name == answer)
-    // if (!pick) {
-    //   client.emit('winner')
-    //   return
-    // }
-    // console.log('pick + ', pick)
     var highest = helpers.getMax(personalTweets)
     //if right
     if (pick.tweet_volume >= highest) {
       client.emit('points', (points += 3))
       //take pick from all tweets and from the 4 options
-      //if (clientTweets != []) {
       clientTweets = clientTweets.filter(value => value != pick)
-      //}
-      //console.log('clientTweets = ', clientTweets)
       personalTweets = personalTweets.filter(value => value != pick)
-      //console.log('personalTweets = ', personalTweets)
       //take a new tweet
       var newTweet = helpers.getRandom(clientTweets, 1)[0]
       //check if game is over
-      if (newTweet == 'winner') {
+      if (newTweet == 'none') {
+        //check if there are any options left
         if (personalTweets.length >= 1) {
           personalTweets = personalTweets.filter(value => value != pick)
           client.emit('correct', personalTweets.map(tweet => tweet.name))
           return
+          //if no options left
         } else {
           client.emit('winner')
           return
         }
       }
-      //console.log('newTweet = ', newTweet)
       //remove new tweet from the total tweets
       clientTweets = clientTweets.filter(value => value.name != newTweet.name)
-      console.log('clientTweets = ', personalTweets)
       //add it to options
       personalTweets.push(newTweet)
-      console.log('personalTweets = ', personalTweets)
       //send new tweets to client
       client.emit('correct', personalTweets.map(tweet => tweet.name))
       //on wrong answer
@@ -115,7 +114,7 @@ var helpers = {
     var result = new Array(n),
       len = arr.length,
       taken = new Array(len)
-    if (n > len) return ['winner']
+    if (n > len) return ['none']
     while (n--) {
       var x = Math.floor(Math.random() * len)
       result[n] = arr[x in taken ? taken[x] : x]
